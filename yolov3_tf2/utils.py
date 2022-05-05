@@ -2,6 +2,7 @@ from absl import logging
 import numpy as np
 import tensorflow as tf
 import cv2
+from apiRequestTester import send_api
 
 YOLOV3_LAYER_LIST = [
     'yolo_darknet',
@@ -99,17 +100,49 @@ def broadcast_iou(box_1, box_2):
     return int_area / (box_1_area + box_2_area - int_area)
 
 
-def draw_outputs(img, outputs, class_names):
+def draw_outputs(img, outputs, class_names,centerW,centerH):
     boxes, objectness, classes, nums = outputs
     boxes, objectness, classes, nums = boxes[0], objectness[0], classes[0], nums[0]
+    centerWidth , centerHeight = centerW, centerH
+
     wh = np.flip(img.shape[0:2])
+
     for i in range(nums):
         x1y1 = tuple((np.array(boxes[i][0:2]) * wh).astype(np.int32))
         x2y2 = tuple((np.array(boxes[i][2:4]) * wh).astype(np.int32))
-        img = cv2.rectangle(img, x1y1, x2y2, (255, 0, 0), 2)
-        img = cv2.putText(img, '{} {:.4f}'.format(
-            class_names[int(classes[i])], objectness[i]),
+        img = cv2.rectangle(img, x1y1, x2y2, (0, 255, 0), 2)
+        className = '{} {:.4f}'.format(
+            class_names[int(classes[i])], objectness[i])
+        img = cv2.putText(img, className,
             x1y1, cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 2)
+
+        # class_names = class_names[int(classes[i])]
+        centerWh = [centerWidth,centerHeight]
+        x1y1Np = np.array(list(x1y1))
+        x2y2Np = np.array(list(x2y2))
+        centerWhNp = np.array(centerWh)
+        ocWh = x2y2Np - x1y1Np # object center width  height
+        ocw,och = ocWh
+
+        #print("center = " + str(centerWhNp))#str(centerWidth) + ", " + str(centerHeight))
+        #print("Object center = " + str(ocw) + ", "+ str(och))#str(ocWh))
+        #print('class_name : '+ className + " /// left_top : " + str(x1y1) + " /// right_bottom : " + str(x2y2))
+        direction = centerWidth - ocw
+
+        if "bicycle" in className : # 특정 클래스이고
+            print("bicycle class Object Detection")
+            if direction > 0:  # 객체가 이미지의 센터보다 왼쪽에 위치
+                print(str(direction) +" <<-- direction left ")
+                send_api("left","POST")
+            elif direction < 0: # 객체가 이미지의 센터보다 오른쪽에 위치
+                print(str(direction) +" direction right -->> ")
+                send_api("right", "POST")
+            else:
+                print("direction straight")
+                send_api("straight", "POST")
+
+
+
     return img
 
 

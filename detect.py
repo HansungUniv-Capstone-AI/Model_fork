@@ -60,10 +60,19 @@ def main(_argv):
                                            np.array(scores[0][i]),
                                            np.array(boxes[0][i])))
 
+   # hi, wi, c = img.shape #h,w, channel
+   # x = wi / 2  # 영상의 가로 절반
+   # y = hi / 2  # 영상의 세로
+   # w = 100
+   # h = 100  # 폭지정
+   # roi = img[y:y + h, x:x + w]
+   # cv2.rectangle(roi, (0, 0), (h-1, w-1), (255, 255, 0), 10)
+
     img = cv2.cvtColor(img_raw.numpy(), cv2.COLOR_RGB2BGR)
     img = draw_outputs(img, (boxes, scores, classes, nums), class_names)
     cv2.imwrite(FLAGS.output, img)
     logging.info('output saved to: {}'.format(FLAGS.output))
+
 
 
 if __name__ == '__main__':

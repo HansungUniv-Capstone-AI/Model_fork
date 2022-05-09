@@ -7,8 +7,10 @@ from yolov3_tf2.models import (
     YoloV3, YoloV3Tiny
 )
 from yolov3_tf2.dataset import transform_images
-from yolov3_tf2.dataset import transform_targets_for_output
 from yolov3_tf2.utils import draw_outputs
+import socket
+import numpy as np
+
 
 flags.DEFINE_string('classes', './data/coco.names', 'path to classes file')
 flags.DEFINE_string('weights', './checkpoints/yolov3.tf',
@@ -21,6 +23,34 @@ flags.DEFINE_string('output', None, 'path to output video')
 flags.DEFINE_string('output_format', 'XVID', 'codec used in VideoWriter when saving video to file')
 flags.DEFINE_integer('num_classes', 80, 'number of classes in the model')
 
+
+
+# socket에서 수신한 버퍼를 반환하는 함수
+def recvall(sock, count):
+    # 바이트 문자열
+    buf = b'' #바이트(인코딩 지정) 객체 생성
+    while count: #지정한 바이트 길이까지만 받기
+        newbuf = sock.recv(count)
+        if not newbuf: return None
+        buf += newbuf
+        count -= len(newbuf)
+    return buf
+
+########################
+HOST = ''
+PORT = 8485 # client <-> server간 포트 동일하게
+# UDP 사용
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # SOCK_STREAM : TCP
+print('Socket created')
+# 서버의 아이피와 포트번호 지정 -> 포트에 매핑(바인딩)
+s.bind((HOST, PORT))
+print('Socket bind complete')
+# 클라이언트의 접속을 기다린다. (클라이언트 연결을 10개까지 받는다) : 클라이언트가 bind된 port로 연결할 때까지 기다리는 blocking 함수
+s.listen(10)
+print('Socket now listening')
+# 연결, conn에는 소켓 객체, addr은 소켓에 바인드 된 주소
+conn, addr = s.accept()
+#########################
 
 def main(_argv):
     physical_devices = tf.config.experimental.list_physical_devices('GPU')
@@ -41,9 +71,9 @@ def main(_argv):
     times = []
 
     try:
-        vid = cv2.VideoCapture(0)  # (int(FLAGS.video))
+        vid = cv2.VideoCapture(0)#int(FLAGS.video)) # vid = cv2.VideoCapture(int(FLAGS.video))
     except:
-        vid = cv2.VideoCapture(FLAGS.video)
+        vid = cv2.VideoCapture(FLAGS.video) # vid = cv2.VideoCapture(FLAGS.video)
 
     out = None
 
@@ -54,29 +84,23 @@ def main(_argv):
         fps = int(vid.get(cv2.CAP_PROP_FPS))
         codec = cv2.VideoWriter_fourcc(*FLAGS.output_format)
         out = cv2.VideoWriter(FLAGS.output, codec, fps, (width, height))
-        out2 = cv2.VideoWriter(FLAGS.output, codec, fps, (width, height)) #확인용 출력 영상
-
-        # // *Print   bounding  b   values
-        # printf("Bounding Box : Left=%d, Top=%d, Right=%d, Bottom=%d\n", left, top, right, bot);
-        # printf("Center_x: %d , Center_Y: %d ", (left + ((right - left) / 2)), (top + ((bot - top) / 2)));
-        # draw_box_width(im, left, top, right, bot, width, red, green, blue);
-        # if (alphabet) {
-        # image label = get_label(alphabet, labelstr, (im.h * .03));
-        # draw_label(im, top + width, left, label, rgb);
-        # free_image(label);
-        # }
 
 
+    width = int(vid.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    centerWidth = int(width/2)
+    centerHeight = int(height/2)
 
     while True:
-        _, img = vid.read()
+        # client에서 받은 stringData의 크기 (==(str(len(stringData))).encode().ljust(16))
+        length = recvall(conn, 16)
+        stringData = recvall(conn, int(length))
+        data = np.fromstring(stringData, dtype='uint8')
 
-        if img is None:
-            logging.warning("Empty Frame")
-            time.sleep(0.1)
-            continue
+        # data를 디코딩한다.
+        frame = cv2.imdecode(data, cv2.IMREAD_COLOR)
 
-        img_in = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img_in = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         img_in = tf.expand_dims(img_in, 0)
         img_in = transform_images(img_in, FLAGS.size)
 
@@ -86,30 +110,45 @@ def main(_argv):
         times.append(t2 - t1)
         times = times[-20:]
 
-        # #관심 roi 설정
-        # x = FLAGS.outputs_width/2 #영상의 가로
-        # y = FLAGS.outputs_height/2 #영상의 세로
-        # w = 100
-        # h = 100 #폭지정
-        # roi = vid[y:y+h, x:x+w]
-        # cv2.rectangle(roi, (0, 0), (h-1, w-1), (0, 255, 0), 5)
-
-        img = draw_outputs(img, (boxes, scores, classes, nums), class_names)
-        img = cv2.putText(img, "Time: {:.2f}ms".format(sum(times) / len(times) * 1000), (0, 30),
-                          cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 2)
-
-        img2 = draw_outputs(img, (boxes, scores, classes, 0), class_names)
-        img2 = cv2.putText(img2, "Time: {:.2f}ms".format(sum(times) / len(times) * 1000), (0,),
-                          cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 0 , 0), 2)
-
+        frame = draw_outputs(frame, (boxes, scores, classes, nums), class_names,centerWidth,centerHeight)
+        frame = cv2.putText(frame, "Time: {:.2f}ms".format(sum(times) / len(times) * 1000), (0, 30),
+                            cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 2)
 
         if FLAGS.output:
-            out.write(img)
-        cv2.imshow('output', img)
-        cv2.imshow('output2',img2)
+            out.write(frame)
+
+        cv2.imshow('Realtimetcp', frame)
         if cv2.waitKey(1) == ord('q'):
             break
 
+    """
+    while True:
+        _, frame = vid.read()
+
+        if frame is None:
+            logging.warning("Empty Frame")
+            time.sleep(0.1)
+            continue
+
+        img_in = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        img_in = tf.expand_dims(img_in, 0)
+        img_in = transform_images(img_in, FLAGS.size)
+
+        t1 = time.time()
+        boxes, scores, classes, nums = yolo.predict(img_in)
+        t2 = time.time()
+        times.append(t2-t1)
+        times = times[-20:]
+
+        frame = draw_outputs(frame, (boxes, scores, classes, nums), class_names)
+        frame = cv2.putText(frame, "Time: {:.2f}ms".format(sum(times)/len(times)*1000), (0, 30),
+                          cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 2)
+        if FLAGS.output:
+            out.write(frame)
+        cv2.imshow('output', frame)
+        if cv2.waitKey(1) == ord('q'):
+            break
+        """
     cv2.destroyAllWindows()
 
 
@@ -118,6 +157,3 @@ if __name__ == '__main__':
         app.run(main)
     except SystemExit:
         pass
-
-
-# def robot_control():

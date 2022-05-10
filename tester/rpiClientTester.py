@@ -47,7 +47,7 @@ def patchCartUsedStatus():
 ## TCP 사용
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 ## server ip, port
-s.connect(('localhost', 8485))
+s.connect(('localhost', 9999))
 
 ## webcam 이미지 capture
 cam = cv2.VideoCapture(0)

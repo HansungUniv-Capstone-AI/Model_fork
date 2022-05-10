@@ -2,7 +2,7 @@ from absl import logging
 import numpy as np
 import tensorflow as tf
 import cv2
-from apiRequestTester import send_api
+from apiRequestTester import send_api_direction, send_api_speed
 import threading
 
 
@@ -101,25 +101,28 @@ def broadcast_iou(box_1, box_2):
         (box_2[..., 3] - box_2[..., 1])
     return int_area / (box_1_area + box_2_area - int_area)
 
-# 스레드에서 실행하는 함수
-def publishing_topic(direction, distance):
-    # if direction > 100:  # 객체가 이미지의 센터보다 왼쪽에 위치
-    #    print(str(direction) +" <<-- direction left ")
-    #   send_api("left", "POST")
-    # elif direction < -100: # 객체가 이미지의 센터보다 오른쪽에 위치
-    #   print(str(direction) +" direction right -->> ")
-    #   send_api("right", "POST")
-    # else:
-    #   send_api("center","POST")
-
-    if distance > 50:  # 바운딩 박스가 큼 -> 객체가 가까이 있음
-        print(str(distance) + "DOWN DOWN ~~")
-        send_api("DOWN", "POST")
-    elif distance < 20:  # 바운딩 박스가 작음 -> 객체가 멀리 있음
-        print(str(distance) + "!!!! UPUPUP")
-        send_api("UP", "POST")
+# thread 1
+def publishing_topic_direction(direction):
+    if direction > 100:  # 객체가 이미지의 센터보다 왼쪽에 위치
+        #print(str(direction) +" <<-- direction left ")
+        send_api_direction("left")
+    elif direction < -100: # 객체가 이미지의 센터보다 오른쪽에 위치
+        #print(str(direction) +" direction right -->> ")
+        send_api_direction("right")
     else:
-        send_api("STOP", "POST")
+        send_api_direction("center")
+
+# thread 2
+def publishing_topic_speed(speed):
+
+    if speed > 50:  # 바운딩 박스가 큼 -> 객체가 가까이 있음
+        #print(str(speed) + "DOWN DOWN ~~")
+        send_api_speed("DOWN")
+    elif speed < 20:  # 바운딩 박스가 작음 -> 객체가 멀리 있음
+        #print(str(speed) + "!!!! UPUPUP")
+        send_api_speed("UP")
+    else:
+        send_api_speed("STOP")
 
 
 def draw_outputs(img, outputs, class_names, centerW, centerH):
@@ -150,12 +153,19 @@ def draw_outputs(img, outputs, class_names, centerW, centerH):
        # print('class_name : ' + className + " /// left_top : " + str(x1y1) + " /// right_bottom : " + str(x2y2))
         #print("Object center = " + str(ocw) + ", "+ str(och))#str(ocWh))
         direction = centerWidth - ocw
-        distance = abs(centerWidth -ocw)
+        speed = abs(centerWidth -ocw)
 
         if "person" in className : # 특정 클래스이고
             print("person class Object Detection")
-            th = threading.Thread(target=publishing_topic,args=(direction,distance))
-            th.start() # sub thread start()
+            th2 = threading.Thread(target=publishing_topic_speed,
+                                   name="threa 2 :",
+                                   args=(speed,))
+            th2.start()  # sub thread 2 start()
+            th1 = threading.Thread(target=publishing_topic_direction,
+                                   name="thread 1 :",
+                                   args=(direction,))
+            th1.start() # sub thread 1 start()
+
 
     return img
 

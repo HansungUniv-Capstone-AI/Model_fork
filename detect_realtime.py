@@ -38,7 +38,7 @@ def recvall(sock, count):
 
 ########################
 HOST = ''
-PORT = 8485 # client <-> server간 포트 동일하게
+PORT = 8888 # client <-> server간 포트 동일하게
 # UDP 사용
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # SOCK_STREAM : TCP
 print('Socket created')
@@ -77,13 +77,13 @@ def main(_argv):
 
     out = None
 
-    if FLAGS.output:
+    #if FLAGS.output:
         # by default VideoCapture returns float instead of int
-        width = int(vid.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = int(vid.get(cv2.CAP_PROP_FPS))
-        codec = cv2.VideoWriter_fourcc(*FLAGS.output_format)
-        out = cv2.VideoWriter(FLAGS.output, codec, fps, (width, height))
+     #   width = int(vid.get(cv2.CAP_PROP_FRAME_WIDTH))
+      #  height = int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
+       # fps = int(vid.get(cv2.CAP_PROP_FPS))
+       # codec = cv2.VideoWriter_fourcc(*FLAGS.output_format)
+       # out = cv2.VideoWriter(FLAGS.output, codec, fps, (width, height))
 
 
     width = int(vid.get(cv2.CAP_PROP_FRAME_WIDTH))

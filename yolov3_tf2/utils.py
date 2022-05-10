@@ -149,10 +149,10 @@ def draw_outputs(img, outputs, class_names, centerW, centerH):
             print("person class Object Detection")
             if direction > 100:  # 객체가 이미지의 센터보다 왼쪽에 위치
                 print(str(direction) +" <<-- direction left ")
-                #send_api("left", "POST")
+                send_api("left", "POST")
             elif direction < -100: # 객체가 이미지의 센터보다 오른쪽에 위치
                 print(str(direction) +" direction right -->> ")
-                #send_api("right", "POST")
+                send_api("right", "POST")
 
             # 면적으로 앞뒤 조정 ?di
             # elif distance > 0: # 객체가 기존면적보다 작다 = 멀다
@@ -161,10 +161,10 @@ def draw_outputs(img, outputs, class_names, centerW, centerH):
             # elif distance < 0:  # 객체가 기존면적보다 크다 = 가깝다
             #     print(str(distance) + " distance stop")
             #     send_api("stop", "POST")
-            #
-            else:
-                print("direction straight")
-                send_api("straight", "POST")
+            ##
+            # else:
+                #print("direction straight")
+                #send_api("straight", "POST")
 
 
     return img

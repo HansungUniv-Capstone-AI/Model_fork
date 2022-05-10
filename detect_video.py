@@ -40,7 +40,7 @@ def main(_argv):
     times = []
 
     try:
-        vid = cv2.VideoCapture(int(FLAGS.video))
+        vid = cv2.VideoCapture(0)#"http://192.168.0.91:8090/?action=stream")#int(FLAGS.video))
     except:
         vid = cv2.VideoCapture(FLAGS.video)
 

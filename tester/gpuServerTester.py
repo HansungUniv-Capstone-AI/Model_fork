@@ -16,7 +16,7 @@ def recvall(sock, count):
 
 
 HOST = ''
-PORT = 8485 # client <-> server간 포트 동일하게
+PORT = 9999 # client <-> server간 포트 동일하게
 
 # UDP 사용
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # SOCK_STREAM : TCP

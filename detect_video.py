@@ -14,7 +14,7 @@ flags.DEFINE_string('weights', './checkpoints/yolov3.tf',
                     'path to weights file')
 flags.DEFINE_boolean('tiny', False, 'yolov3 or yolov3-tiny')
 flags.DEFINE_integer('size', 416, 'resize images to')
-flags.DEFINE_string('video', './data/videoDetectionData.mp4.mp4',
+flags.DEFINE_string('video', './data/videoDetectionData2.mp4',
                     'path to video file or number for webcam)')
 flags.DEFINE_string('output', './output/test0509.mp4', 'path to output video')
 flags.DEFINE_string('output_format', 'XVID', 'codec used in VideoWriter when saving video to file')
@@ -38,9 +38,9 @@ def main(_argv):
     logging.info('classes loaded')
 
     times = []
-
+    # "http://192.168.0.91:8090/?action=stream")
     try:
-        vid = cv2.VideoCapture(0)#"http://192.168.0.91:8090/?action=stream")#int(FLAGS.video))
+        vid = cv2.VideoCapture(int(FLAGS.video))
     except:
         vid = cv2.VideoCapture(FLAGS.video)
 

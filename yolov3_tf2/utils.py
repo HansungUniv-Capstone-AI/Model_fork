@@ -2,7 +2,9 @@ from absl import logging
 import numpy as np
 import tensorflow as tf
 import cv2
-from apiRequestTester import send_api
+from apiRequestTester import send_api_direction, send_api_speed
+import threading
+
 
 YOLOV3_LAYER_LIST = [
     'yolo_darknet',
@@ -99,6 +101,29 @@ def broadcast_iou(box_1, box_2):
         (box_2[..., 3] - box_2[..., 1])
     return int_area / (box_1_area + box_2_area - int_area)
 
+# thread 1
+def publishing_topic_direction(direction):
+    if direction > 100:  # 객체가 이미지의 센터보다 왼쪽에 위치
+        #print(str(direction) +" <<-- direction left ")
+        send_api_direction("left")
+    elif direction < -100: # 객체가 이미지의 센터보다 오른쪽에 위치
+        #print(str(direction) +" direction right -->> ")
+        send_api_direction("right")
+    else:
+        send_api_direction("center")
+
+# thread 2
+def publishing_topic_speed(speed):
+
+    if speed > 50:  # 바운딩 박스가 큼 -> 객체가 가까이 있음
+        #print(str(speed) + "DOWN DOWN ~~")
+        send_api_speed("DOWN")
+    elif speed < 20:  # 바운딩 박스가 작음 -> 객체가 멀리 있음
+        #print(str(speed) + "!!!! UPUPUP")
+        send_api_speed("UP")
+    else:
+        send_api_speed("STOP")
+
 
 def draw_outputs(img, outputs, class_names, centerW, centerH):
     boxes, objectness, classes, nums = outputs
@@ -122,49 +147,24 @@ def draw_outputs(img, outputs, class_names, centerW, centerH):
         x2y2Np = np.array(list(x2y2))
         centerWhNp = np.array(centerWh)
         ocWh = (x2y2Np + x1y1Np)/2 # object center width  height
-        ocw,och = ocWh
+        ocw,och = ocWh # Object Center Width, Object Center Height
 
         #print("center = " + str(centerWhNp))#str(centerWidth) + ", " + str(centerHeight))
-        #print('class_name : ' + className + " /// left_top : " + str(x1y1) + " /// right_bottom : " + str(x2y2))
+       # print('class_name : ' + className + " /// left_top : " + str(x1y1) + " /// right_bottom : " + str(x2y2))
         #print("Object center = " + str(ocw) + ", "+ str(och))#str(ocWh))
         direction = centerWidth - ocw
-
-        # #contours approximation
-        # targetGray = cv2.cvtColor(x1y1, cv2.COLOR_BGR2GRAY)
-        # shapesGray = cv2.cvtColor(x2y2, cv2.COLOR_BGR2GRAY)
-        # # 바이너리 스케일 변환
-        # ret, targetTh = cv2.threshold(targetGray, 127, 255, cv2.THRESH_BINARY_INV)
-        # ret, shapesTh = cv2.threshold(shapesGray, 127, 255, cv2.THRESH_BINARY_INV)
-        # # 컨투어 찾기
-        # _, cntrs_target, _ = cv2.findContours(targetTh, cv2.RETR_EXTERNAL, \
-        #                                       cv2.CHAIN_APPROX_SIMPLE)
-        # _, cntrs_shapes, _ = cv2.findContours(shapesTh, cv2.RETR_EXTERNAL, \
-        #                                       cv2.CHAIN_APPROX_SIMPLE)
-        # #contour, 면적 계산  cv2.contourArea(contour 외곽선 좌표(numpy.ndarray.shape),부호있는 면적반환 )
-        # target_area = cv2.contourArea(cntrs_target, True)
-        # shapes_area = cv2.contourArea(cntrs_shapes, True)
-        # distance = target_area - shapes_area
+        speed = abs(centerWidth -ocw)
 
         if "person" in className : # 특정 클래스이고
             print("person class Object Detection")
-            if direction > 100:  # 객체가 이미지의 센터보다 왼쪽에 위치
-                print(str(direction) +" <<-- direction left ")
-                send_api("left", "POST")
-            elif direction < -100: # 객체가 이미지의 센터보다 오른쪽에 위치
-                print(str(direction) +" direction right -->> ")
-                send_api("right", "POST")
-
-            # 면적으로 앞뒤 조정 ?di
-            # elif distance > 0: # 객체가 기존면적보다 작다 = 멀다
-            #     print(str(distance) +" distance go ahead")
-            #     send_api("go", "POST")
-            # elif distance < 0:  # 객체가 기존면적보다 크다 = 가깝다
-            #     print(str(distance) + " distance stop")
-            #     send_api("stop", "POST")
-            ##
-            # else:
-                #print("direction straight")
-                #send_api("straight", "POST")
+            th2 = threading.Thread(target=publishing_topic_speed,
+                                   name="threa 2 :",
+                                   args=(speed,))
+            th2.start()  # sub thread 2 start()
+            th1 = threading.Thread(target=publishing_topic_direction,
+                                   name="thread 1 :",
+                                   args=(direction,))
+            th1.start() # sub thread 1 start()
 
 
     return img

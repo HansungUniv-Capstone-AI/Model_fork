@@ -3,6 +3,7 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/venv" />
+      <excludeFolder url="file://$MODULE_DIR$/convert2Yolo/example/kitti" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.7 (yolov3-tf2-gpu)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

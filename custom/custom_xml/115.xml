@@ -1,0 +1,26 @@
+<annotation>
+	<folder>image</folder>
+	<filename>115.jpg</filename>
+	<path>C:\Users\dlatj\Documents\카카오톡 받은 파일\image\image\115.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>1920</width>
+		<height>1080</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>cream</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>630</xmin>
+			<ymin>145</ymin>
+			<xmax>1191</xmax>
+			<ymax>739</ymax>
+		</bndbox>
+	</object>
+</annotation>
